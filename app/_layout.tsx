@@ -1,5 +1,6 @@
 import { Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
+import { Image, StyleSheet } from 'react-native';
 
 export default function RootLayout() {
   return (
@@ -7,15 +8,46 @@ export default function RootLayout() {
       <StatusBar style="light" />
       <Stack
         screenOptions={{
-          contentStyle: { backgroundColor: '#0F172A' },
-          headerStyle: { backgroundColor: '#0F172A' },
-          headerTintColor: '#FFFFFF',
+          contentStyle: { backgroundColor: '#090D16' },
+          headerBackTitle: 'Back',
+          headerStyle: { backgroundColor: '#090D16' },
+          headerTintColor: '#F6C453',
           headerTitleStyle: { fontWeight: '800' },
         }}
       >
-        <Stack.Screen name="index" options={{ title: 'Bag Boss' }} />
-        <Stack.Screen name="history" options={{ title: 'Game History' }} />
+        <Stack.Screen
+          name="index"
+          options={{
+            headerTitle: () => (
+              <Image
+                accessibilityIgnoresInvertColors
+                accessibilityLabel="Bag Boss"
+                source={require('../assets/splash-icon.png')}
+                style={styles.headerLogo}
+              />
+            ),
+            headerTitleAlign: 'center',
+          }}
+        />
+        <Stack.Screen
+          name="history"
+          options={{
+            animation: 'slide_from_right',
+            contentStyle: { backgroundColor: '#090D16' },
+            fullScreenGestureEnabled: true,
+            fullScreenGestureShadowEnabled: false,
+            headerShown: false,
+          }}
+        />
       </Stack>
     </>
   );
 }
+
+const styles = StyleSheet.create({
+  headerLogo: {
+    height: 52,
+    resizeMode: 'contain',
+    width: 204,
+  },
+});

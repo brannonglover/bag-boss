@@ -1,10 +1,11 @@
-import { Link, Stack } from 'expo-router';
-import { Alert, Pressable, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
+import { Stack } from 'expo-router';
+import { Alert, Animated, Image, PanResponder, Pressable, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
 import { ColorPicker } from '../src/components/ColorPicker';
 import { FireworksOverlay } from '../src/components/FireworksOverlay';
+import { HistoryPanel } from '../src/components/HistoryPanel';
 import { saveGame } from '../src/storage/gameHistory';
 import type { GameScores, ScoreAction, TeamSide } from '../src/types/game';
 
@@ -38,9 +39,52 @@ export default function CounterScreen() {
   const [timerSeconds, setTimerSeconds] = useState(0);
   const [isTimerRunning, setIsTimerRunning] = useState(false);
   const [fireworksTrigger, setFireworksTrigger] = useState(0);
+  const [isHistoryVisible, setIsHistoryVisible] = useState(false);
+  const historyPanelTranslateX = useRef(new Animated.Value(width)).current;
   const previousScoresRef = useRef({ left: 0, right: 0 });
   const isLandscape = width > height;
   const winner = getWinner(scores);
+  const canSwipeToHistory = !isEmptyScoreModalVisible && !isFinishModalVisible && !isHistoryVisible;
+
+  useEffect(() => {
+    if (!isHistoryVisible) {
+      historyPanelTranslateX.setValue(width);
+    }
+  }, [historyPanelTranslateX, isHistoryVisible, width]);
+
+  const openHistory = useCallback(() => {
+    setIsHistoryVisible(true);
+    historyPanelTranslateX.setValue(width);
+    Animated.timing(historyPanelTranslateX, {
+      duration: 260,
+      toValue: 0,
+      useNativeDriver: true,
+    }).start();
+  }, [historyPanelTranslateX, width]);
+
+  const closeHistory = useCallback(() => {
+    Animated.timing(historyPanelTranslateX, {
+      duration: 240,
+      toValue: width,
+      useNativeDriver: true,
+    }).start(() => setIsHistoryVisible(false));
+  }, [historyPanelTranslateX, width]);
+
+  const swipeResponder = useMemo(
+    () =>
+      PanResponder.create({
+        onMoveShouldSetPanResponder: (_event, gestureState) =>
+          canSwipeToHistory &&
+          gestureState.dx < -28 &&
+          Math.abs(gestureState.dy) < 40,
+        onPanResponderRelease: (_event, gestureState) => {
+          if (gestureState.dx < -90 && Math.abs(gestureState.dy) < 70) {
+            openHistory();
+          }
+        },
+      }),
+    [canSwipeToHistory, openHistory],
+  );
 
   useEffect(() => {
     if (!isTimerRunning) {
@@ -156,8 +200,18 @@ export default function CounterScreen() {
   };
 
   return (
-    <SafeAreaView edges={isLandscape ? [] : ['bottom']} style={styles.safeArea}>
-      <Stack.Screen options={{ headerShown: !isLandscape }} />
+    <SafeAreaView edges={isLandscape ? [] : ['top', 'bottom']} style={styles.safeArea} {...swipeResponder.panHandlers}>
+      <Stack.Screen options={{ headerShown: false }} />
+      {!isLandscape ? (
+        <View style={styles.homeHeader}>
+          <Image
+            accessibilityIgnoresInvertColors
+            accessibilityLabel="Bag Boss"
+            source={require('../assets/splash-icon.png')}
+            style={styles.homeHeaderLogo}
+          />
+        </View>
+      ) : null}
       {!isLandscape ? (
         <View style={styles.topBar}>
           <Text style={styles.instructions}>Tap a score to add a point.</Text>
@@ -171,11 +225,9 @@ export default function CounterScreen() {
             onToggle={() => setIsTimerRunning((currentValue) => !currentValue)}
             seconds={timerSeconds}
           />
-          <Link asChild href="/history">
-            <Pressable accessibilityRole="button" style={styles.historyButton}>
-              <Text style={styles.historyButtonText}>History</Text>
-            </Pressable>
-          </Link>
+          <Pressable accessibilityRole="button" onPress={openHistory} style={styles.historyButton}>
+            <Text style={styles.historyButtonText}>History</Text>
+          </Pressable>
         </View>
       ) : null}
 
@@ -255,6 +307,18 @@ export default function CounterScreen() {
         visible={isEmptyScoreModalVisible}
       />
       <FireworksOverlay trigger={fireworksTrigger} />
+      {isHistoryVisible ? (
+        <Animated.View
+          style={[
+            styles.historyPanel,
+            {
+              transform: [{ translateX: historyPanelTranslateX }],
+            },
+          ]}
+        >
+          <HistoryPanel onClose={closeHistory} visible={isHistoryVisible} />
+        </Animated.View>
+      ) : null}
     </SafeAreaView>
   );
 }
@@ -478,7 +542,9 @@ const styles = StyleSheet.create({
     gap: 18,
   },
   controls: {
-    backgroundColor: '#111827',
+    backgroundColor: '#090D16',
+    borderTopColor: 'rgba(229, 9, 20, 0.35)',
+    borderTopWidth: 1,
     gap: 24,
     padding: 18,
   },
@@ -486,36 +552,56 @@ const styles = StyleSheet.create({
     opacity: 0.45,
   },
   historyButton: {
-    backgroundColor: '#1E293B',
+    backgroundColor: 'rgba(255, 255, 255, 0.08)',
+    borderColor: 'rgba(255, 255, 255, 0.14)',
+    borderWidth: 1,
     borderRadius: 999,
     paddingHorizontal: 16,
     paddingVertical: 9,
   },
+  historyPanel: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: '#090D16',
+    zIndex: 20,
+  },
   historyButtonText: {
-    color: '#FFFFFF',
+    color: '#CBD5E1',
     fontSize: 14,
-    fontWeight: '800',
+    fontWeight: '700',
+  },
+  homeHeader: {
+    alignItems: 'center',
+    backgroundColor: '#090D16',
+    justifyContent: 'center',
+    paddingVertical: 8,
+  },
+  homeHeaderLogo: {
+    height: 52,
+    resizeMode: 'contain',
+    width: 204,
   },
   instructions: {
-    color: '#CBD5E1',
+    color: '#F8FAFC',
     flex: 1,
     fontSize: 15,
     fontWeight: '600',
   },
   primaryButton: {
     alignItems: 'center',
-    backgroundColor: '#FFFFFF',
+    backgroundColor: '#E50914',
+    borderColor: '#F6C453',
+    borderWidth: 1,
     borderRadius: 14,
     flex: 1.4,
     paddingVertical: 14,
   },
   primaryButtonText: {
-    color: '#0F172A',
+    color: '#FFFFFF',
     fontSize: 16,
     fontWeight: '900',
   },
   safeArea: {
-    backgroundColor: '#0F172A',
+    backgroundColor: '#090D16',
     flex: 1,
   },
   scoreboard: {
@@ -535,8 +621,8 @@ const styles = StyleSheet.create({
     width: '100%',
   },
   scoreLandscape: {
-    fontSize: 164,
-    lineHeight: 180,
+    fontSize: 230,
+    lineHeight: 250,
   },
   scorePanel: {
     flex: 1,
@@ -550,7 +636,9 @@ const styles = StyleSheet.create({
   },
   secondaryButton: {
     alignItems: 'center',
-    backgroundColor: '#1E293B',
+    backgroundColor: '#101622',
+    borderColor: 'rgba(246, 196, 83, 0.35)',
+    borderWidth: 1,
     borderRadius: 14,
     flex: 1,
     paddingVertical: 14,
@@ -566,14 +654,14 @@ const styles = StyleSheet.create({
   },
   modalBackdrop: {
     alignItems: 'center',
-    backgroundColor: 'rgba(2, 6, 23, 0.76)',
+    backgroundColor: 'rgba(2, 6, 23, 0.82)',
     justifyContent: 'center',
     padding: 22,
     ...StyleSheet.absoluteFillObject,
     zIndex: 10,
   },
   modalBody: {
-    color: '#CBD5E1',
+    color: '#E5E7EB',
     fontSize: 16,
     fontWeight: '600',
     textAlign: 'center',
@@ -586,7 +674,7 @@ const styles = StyleSheet.create({
     width: 24,
   },
   modalEyebrow: {
-    color: '#94A3B8',
+    color: '#F6C453',
     fontSize: 13,
     fontWeight: '900',
     letterSpacing: 1.4,
@@ -594,13 +682,15 @@ const styles = StyleSheet.create({
   },
   modalPrimaryButton: {
     alignItems: 'center',
-    backgroundColor: '#FFFFFF',
+    backgroundColor: '#E50914',
+    borderColor: '#F6C453',
+    borderWidth: 1,
     borderRadius: 14,
     paddingVertical: 14,
     width: '100%',
   },
   modalPrimaryButtonText: {
-    color: '#0F172A',
+    color: '#FFFFFF',
     fontSize: 16,
     fontWeight: '900',
   },
@@ -610,7 +700,7 @@ const styles = StyleSheet.create({
     fontWeight: '900',
   },
   modalScoreDivider: {
-    color: '#64748B',
+    color: '#E50914',
     fontSize: 34,
     fontWeight: '900',
   },
@@ -623,7 +713,9 @@ const styles = StyleSheet.create({
   },
   modalSecondaryButton: {
     alignItems: 'center',
-    backgroundColor: '#1E293B',
+    backgroundColor: '#101622',
+    borderColor: 'rgba(246, 196, 83, 0.35)',
+    borderWidth: 1,
     borderRadius: 14,
     paddingVertical: 14,
     width: '100%',
@@ -634,7 +726,7 @@ const styles = StyleSheet.create({
     fontWeight: '800',
   },
   modalTeamLabel: {
-    color: '#CBD5E1',
+    color: '#F6C453',
     fontSize: 13,
     fontWeight: '900',
     textTransform: 'uppercase',
@@ -652,10 +744,10 @@ const styles = StyleSheet.create({
   },
   finishModal: {
     alignItems: 'center',
-    backgroundColor: '#111827',
-    borderColor: 'rgba(255, 255, 255, 0.12)',
+    backgroundColor: '#090D16',
+    borderColor: 'rgba(229, 9, 20, 0.75)',
     borderRadius: 28,
-    borderWidth: 1,
+    borderWidth: 2,
     gap: 18,
     maxWidth: 430,
     padding: 22,
@@ -663,24 +755,26 @@ const styles = StyleSheet.create({
   },
   topBar: {
     alignItems: 'center',
-    backgroundColor: '#0F172A',
+    backgroundColor: '#090D16',
+    borderBottomColor: 'rgba(229, 9, 20, 0.32)',
+    borderBottomWidth: 1,
     flexDirection: 'row',
     gap: 16,
     padding: 16,
   },
   timerDot: {
-    backgroundColor: '#64748B',
+    backgroundColor: '#F6C453',
     borderRadius: 999,
     height: 7,
     width: 7,
   },
   timerDotRunning: {
-    backgroundColor: '#22C55E',
+    backgroundColor: '#E50914',
   },
   timerPill: {
     alignItems: 'center',
-    backgroundColor: '#1E293B',
-    borderColor: 'rgba(255, 255, 255, 0.1)',
+    backgroundColor: '#101622',
+    borderColor: 'rgba(246, 196, 83, 0.45)',
     borderRadius: 999,
     borderWidth: 1,
     flexDirection: 'row',
