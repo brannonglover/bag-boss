@@ -48,7 +48,7 @@ function syncExpoConfig(version, buildNumber, versionCode) {
 }
 
 function syncInfoPlist() {
-  const plistPath = path.join(projectRoot, "ios/BagBoss/Info.plist");
+  const plistPath = path.join(projectRoot, "ios/BagCount/Info.plist");
   let contents = fs.readFileSync(plistPath, "utf8");
 
   contents = contents.replace(
@@ -64,7 +64,7 @@ function syncInfoPlist() {
 }
 
 function syncXcodeProject(version, buildNumber) {
-  const pbxprojPath = path.join(projectRoot, "ios/BagBoss.xcodeproj/project.pbxproj");
+  const pbxprojPath = path.join(projectRoot, "ios/BagCount.xcodeproj/project.pbxproj");
   let contents = fs.readFileSync(pbxprojPath, "utf8");
 
   contents = contents.replace(
