@@ -21,7 +21,7 @@ export default function RootLayout() {
             headerTitle: () => (
               <Image
                 accessibilityIgnoresInvertColors
-                accessibilityLabel="Bag Boss"
+                accessibilityLabel="Bag Count"
                 source={require('../assets/splash-icon.png')}
                 style={styles.headerLogo}
               />

@@ -23,9 +23,9 @@ const versionCode = getVersionCode();
 
 export default ({ config }: ConfigContext): ExpoConfig => ({
   ...config,
-  name: "Bag Boss",
-  slug: "bag-boss",
-  scheme: "bagboss",
+  name: "Bag Count",
+  slug: "bag-count",
+  scheme: "bag-count",
   version,
   orientation: "default",
   icon: "./assets/icon.png",
@@ -38,7 +38,7 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
   },
   ios: {
     supportsTablet: true,
-    bundleIdentifier: "com.brannonglover.bagboss",
+    bundleIdentifier: "com.brannonglover.bagcount",
     buildNumber,
     infoPlist: {
       ITSAppUsesNonExemptEncryption: false,
@@ -51,7 +51,7 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
     },
     edgeToEdgeEnabled: true,
     predictiveBackGestureEnabled: false,
-    package: "com.brannonglover.bagboss",
+    package: "com.brannonglover.bagcount",
     versionCode,
   },
   web: {

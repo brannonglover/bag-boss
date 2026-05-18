@@ -1,9 +1,9 @@
 {
   "expo": {
-    "name": "Bag Boss",
-    "slug": "bag-boss",
-    "scheme": "bagboss",
-    "version": "1.0.1",
+    "name": "Bag Count",
+    "slug": "bag-count",
+    "scheme": "bag-count",
+    "version": "1.0.2",
     "orientation": "default",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "dark",
@@ -15,11 +15,11 @@
     },
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.brannonglover.bagboss",
+      "bundleIdentifier": "com.brannonglover.bagcount",
       "infoPlist": {
         "ITSAppUsesNonExemptEncryption": false
       },
-      "buildNumber": "202605171959"
+      "buildNumber": "202605172001"
     },
     "android": {
       "adaptiveIcon": {
@@ -28,8 +28,8 @@
       },
       "edgeToEdgeEnabled": true,
       "predictiveBackGestureEnabled": false,
-      "package": "com.brannonglover.bagboss",
-      "versionCode": 1249919
+      "package": "com.brannonglover.bagcount",
+      "versionCode": 1249921
     },
     "web": {
       "favicon": "./assets/favicon.png"

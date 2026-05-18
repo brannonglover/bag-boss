@@ -204,12 +204,14 @@ export default function CounterScreen() {
       <Stack.Screen options={{ headerShown: false }} />
       {!isLandscape ? (
         <View style={styles.homeHeader}>
-          <Image
-            accessibilityIgnoresInvertColors
-            accessibilityLabel="Bag Boss"
-            source={require('../assets/splash-icon.png')}
-            style={styles.homeHeaderLogo}
-          />
+          <View style={styles.homeHeaderLogoFrame}>
+            <Image
+              accessibilityIgnoresInvertColors
+              accessibilityLabel="Bag Count"
+              source={require('../assets/logo-inline.png')}
+              style={styles.homeHeaderLogo}
+            />
+          </View>
         </View>
       ) : null}
       {!isLandscape ? (
@@ -575,10 +577,16 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     paddingVertical: 8,
   },
+  homeHeaderLogoFrame: {
+    height: 56,
+    overflow: 'hidden',
+    width: 300,
+  },
   homeHeaderLogo: {
-    height: 52,
+    height: 300,
     resizeMode: 'contain',
-    width: 204,
+    transform: [{ translateY: -238 }],
+    width: 300,
   },
   instructions: {
     color: '#F8FAFC',
