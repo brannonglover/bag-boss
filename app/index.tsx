@@ -43,6 +43,9 @@ export default function CounterScreen() {
   const historyPanelTranslateX = useRef(new Animated.Value(width)).current;
   const previousScoresRef = useRef({ left: 0, right: 0 });
   const isLandscape = width > height;
+  const isTablet = Math.min(width, height) >= 768;
+  const isCompactPhone = !isTablet && !isLandscape && width < 390;
+  const isScoreboardOnlyLandscape = isLandscape && !isTablet;
   const winner = getWinner(scores);
   const canSwipeToHistory = !isEmptyScoreModalVisible && !isFinishModalVisible && !isHistoryVisible;
 
@@ -200,23 +203,25 @@ export default function CounterScreen() {
   };
 
   return (
-    <SafeAreaView edges={isLandscape ? [] : ['top', 'bottom']} style={styles.safeArea} {...swipeResponder.panHandlers}>
+    <SafeAreaView edges={isScoreboardOnlyLandscape ? [] : ['top', 'bottom']} style={styles.safeArea} {...swipeResponder.panHandlers}>
       <Stack.Screen options={{ headerShown: false }} />
-      {!isLandscape ? (
-        <View style={styles.homeHeader}>
-          <View style={styles.homeHeaderLogoFrame}>
+      {!isScoreboardOnlyLandscape ? (
+        <View style={[styles.homeHeader, isCompactPhone && styles.homeHeaderCompact]}>
+          <View style={[styles.homeHeaderLogoFrame, isCompactPhone && styles.homeHeaderLogoFrameCompact]}>
             <Image
               accessibilityIgnoresInvertColors
               accessibilityLabel="Bag Count"
               source={require('../assets/logo-inline.png')}
-              style={styles.homeHeaderLogo}
+              style={[styles.homeHeaderLogo, isCompactPhone && styles.homeHeaderLogoCompact]}
             />
           </View>
         </View>
       ) : null}
-      {!isLandscape ? (
-        <View style={styles.topBar}>
-          <Text style={styles.instructions}>Tap a score to add a point.</Text>
+      {!isScoreboardOnlyLandscape ? (
+        <View style={[styles.topBar, isCompactPhone && styles.topBarCompact]}>
+          <Text style={[styles.instructions, isCompactPhone && styles.instructionsCompact]}>
+            Tap a score to add a point.
+          </Text>
           <TimerPill
             isRunning={isTimerRunning}
             isLandscape={false}
@@ -252,7 +257,7 @@ export default function CounterScreen() {
         />
       </View>
 
-      {isLandscape && isTimerRunning ? (
+      {isScoreboardOnlyLandscape && isTimerRunning ? (
         <TimerPill
           isRunning={isTimerRunning}
           isLandscape
@@ -265,35 +270,35 @@ export default function CounterScreen() {
         />
       ) : null}
 
-      {!isLandscape ? (
-      <View style={styles.controls}>
-        <View style={styles.colorPickers}>
-          <ColorPicker
-            label="Left bags"
-            onSelectColor={(color) => setTeamColor('left', color)}
-            selectedColor={scores.left.color}
-          />
-          <ColorPicker
-            label="Right bags"
-            onSelectColor={(color) => setTeamColor('right', color)}
-            selectedColor={scores.right.color}
-          />
-        </View>
+      {!isScoreboardOnlyLandscape ? (
+        <View style={[styles.controls, isCompactPhone && styles.controlsCompact]}>
+          <View style={[styles.colorPickers, isCompactPhone && styles.colorPickersCompact]}>
+            <ColorPicker
+              label="Left bags"
+              onSelectColor={(color) => setTeamColor('left', color)}
+              selectedColor={scores.left.color}
+            />
+            <ColorPicker
+              label="Right bags"
+              onSelectColor={(color) => setTeamColor('right', color)}
+              selectedColor={scores.right.color}
+            />
+          </View>
 
-        <View style={styles.actions}>
-          <Pressable accessibilityRole="button" onPress={resetScores} style={styles.secondaryButton}>
-            <Text style={styles.secondaryButtonText}>Reset</Text>
-          </Pressable>
-          <Pressable
-            accessibilityRole="button"
-            disabled={isSaving}
-            onPress={finishGame}
-            style={[styles.primaryButton, isSaving && styles.disabledButton]}
-          >
-            <Text style={styles.primaryButtonText}>{isSaving ? 'Saving...' : 'Finish Game'}</Text>
-          </Pressable>
+          <View style={styles.actions}>
+            <Pressable accessibilityRole="button" onPress={resetScores} style={styles.secondaryButton}>
+              <Text style={styles.secondaryButtonText}>Reset</Text>
+            </Pressable>
+            <Pressable
+              accessibilityRole="button"
+              disabled={isSaving}
+              onPress={finishGame}
+              style={[styles.primaryButton, isSaving && styles.disabledButton]}
+            >
+              <Text style={styles.primaryButtonText}>{isSaving ? 'Saving...' : 'Finish Game'}</Text>
+            </Pressable>
+          </View>
         </View>
-      </View>
       ) : null}
       <FinishGameModal
         isSaving={isSaving}
@@ -487,6 +492,31 @@ type ScorePanelProps = {
   score: number;
 };
 
+function getScoreTypography(
+  panelHeight: number,
+  panelWidth: number,
+  isLandscape: boolean,
+) {
+  if (panelHeight === 0 || panelWidth === 0) {
+    return { fontSize: isLandscape ? 180 : 96, lineHeight: isLandscape ? 198 : 106 };
+  }
+
+  const maxFontSize = isLandscape ? 230 : 128;
+  const heightScale = isLandscape ? 0.72 : 0.68;
+  const widthScale = isLandscape ? 0.82 : 0.88;
+  const fontSize = Math.min(
+    maxFontSize,
+    Math.floor(panelHeight * heightScale),
+    Math.floor(panelWidth * widthScale),
+  );
+  const clampedFontSize = Math.max(isLandscape ? 96 : 64, fontSize);
+
+  return {
+    fontSize: clampedFontSize,
+    lineHeight: Math.ceil(clampedFontSize * 1.08),
+  };
+}
+
 function ScorePanel({
   backgroundColor,
   isLandscape,
@@ -495,6 +525,11 @@ function ScorePanel({
   onUndo,
   score,
 }: ScorePanelProps) {
+  const [panelLayout, setPanelLayout] = useState({ height: 0, width: 0 });
+  const scoreTypography = useMemo(
+    () => getScoreTypography(panelLayout.height, panelLayout.width, isLandscape),
+    [isLandscape, panelLayout.height, panelLayout.width],
+  );
   const textColor = backgroundColor === '#F8FAFC' || backgroundColor === '#FACC15' ? '#111827' : '#FFFFFF';
   const lastLongPressAtRef = useRef(0);
 
@@ -519,13 +554,28 @@ function ScorePanel({
         delayLongPress={350}
         onLongPress={handleLongPress}
         onPress={handlePress}
-        style={styles.scoreTouchTarget}
+        onLayout={(event) => {
+          const { height, width: panelWidth } = event.nativeEvent.layout;
+
+          setPanelLayout((currentLayout) =>
+            currentLayout.height === height && currentLayout.width === panelWidth
+              ? currentLayout
+              : { height, width: panelWidth },
+          );
+        }}
+        style={[styles.scoreTouchTarget, isLandscape && styles.scoreTouchTargetLandscape]}
       >
         <View style={styles.scoreFrame}>
           <Text
+            adjustsFontSizeToFit
             allowFontScaling={false}
+            minimumFontScale={0.5}
             numberOfLines={1}
-            style={[styles.score, isLandscape && styles.scoreLandscape, { color: textColor }]}
+            style={[
+              styles.score,
+              scoreTypography,
+              { color: textColor },
+            ]}
           >
             {score}
           </Text>
@@ -543,12 +593,20 @@ const styles = StyleSheet.create({
   colorPickers: {
     gap: 18,
   },
+  colorPickersCompact: {
+    gap: 12,
+  },
   controls: {
     backgroundColor: '#090D16',
     borderTopColor: 'rgba(229, 9, 20, 0.35)',
     borderTopWidth: 1,
     gap: 24,
     padding: 18,
+  },
+  controlsCompact: {
+    gap: 16,
+    paddingHorizontal: 16,
+    paddingVertical: 14,
   },
   disabledButton: {
     opacity: 0.45,
@@ -577,10 +635,17 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     paddingVertical: 8,
   },
+  homeHeaderCompact: {
+    paddingVertical: 4,
+  },
   homeHeaderLogoFrame: {
     height: 56,
     overflow: 'hidden',
     width: 300,
+  },
+  homeHeaderLogoFrameCompact: {
+    height: 44,
+    width: 240,
   },
   homeHeaderLogo: {
     height: 300,
@@ -588,11 +653,20 @@ const styles = StyleSheet.create({
     transform: [{ translateY: -238 }],
     width: 300,
   },
+  homeHeaderLogoCompact: {
+    height: 240,
+    transform: [{ translateY: -190 }],
+    width: 240,
+  },
   instructions: {
     color: '#F8FAFC',
     flex: 1,
+    flexShrink: 1,
     fontSize: 15,
     fontWeight: '600',
+  },
+  instructionsCompact: {
+    fontSize: 13,
   },
   primaryButton: {
     alignItems: 'center',
@@ -615,32 +689,33 @@ const styles = StyleSheet.create({
   scoreboard: {
     flex: 1,
     flexDirection: 'row',
+    minHeight: 0,
   },
   score: {
-    fontSize: 128,
     fontWeight: '900',
     includeFontPadding: false,
-    lineHeight: 142,
     textAlign: 'center',
+    width: '100%',
   },
   scoreFrame: {
     alignItems: 'center',
     justifyContent: 'center',
+    maxHeight: '100%',
     width: '100%',
-  },
-  scoreLandscape: {
-    fontSize: 230,
-    lineHeight: 250,
   },
   scorePanel: {
     flex: 1,
+    minHeight: 0,
   },
   scoreTouchTarget: {
     alignItems: 'center',
     flex: 1,
     justifyContent: 'center',
-    overflow: 'visible',
-    paddingVertical: 16,
+    minHeight: 0,
+    paddingVertical: 12,
+  },
+  scoreTouchTargetLandscape: {
+    paddingVertical: 8,
   },
   secondaryButton: {
     alignItems: 'center',
@@ -769,6 +844,11 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     gap: 16,
     padding: 16,
+  },
+  topBarCompact: {
+    gap: 10,
+    paddingHorizontal: 14,
+    paddingVertical: 12,
   },
   timerDot: {
     backgroundColor: '#F6C453',

@@ -3,7 +3,7 @@
     "name": "Bag Count",
     "slug": "bag-count",
     "scheme": "bag-count",
-    "version": "1.1.0",
+    "version": "1.1.1",
     "orientation": "default",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "dark",
@@ -19,7 +19,7 @@
       "infoPlist": {
         "ITSAppUsesNonExemptEncryption": false
       },
-      "buildNumber": "202605181211"
+      "buildNumber": "202605181213"
     },
     "android": {
       "adaptiveIcon": {
@@ -29,7 +29,7 @@
       "edgeToEdgeEnabled": true,
       "predictiveBackGestureEnabled": false,
       "package": "com.brannonglover.bagcount",
-      "versionCode": 1250891
+      "versionCode": 1250893
     },
     "web": {
       "favicon": "./assets/favicon.png"
@@ -40,8 +40,9 @@
     "extra": {
       "router": {},
       "eas": {
-        "projectId": "27e850de-65a8-4ee7-9e13-2f25758eebf7"
+        "projectId": "5674bab2-1aa3-4680-a05f-5ac9beed8e14"
       }
-    }
+    },
+    "owner": "brannonglover"
   }
 }
