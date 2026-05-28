@@ -1,29 +1,31 @@
+#!/usr/bin/env node
+/**
+ * Syncs version metadata across package.json, app.json, and the iOS Xcode project.
+ * During EAS iOS builds, we also stamp a fresh CURRENT_PROJECT_VERSION so App Store
+ * submissions do not reuse an old build.
+ *
+ * Run manually with: node scripts/sync-version.js
+ * Include a fresh iOS build number with: node scripts/sync-version.js --with-build-number
+ * Or automatically via: npm run version:sync / npm version patch|minor|major / eas-build-pre-install
+ */
+
 const fs = require("fs");
 const path = require("path");
 
-const projectRoot = path.resolve(__dirname, "..");
-
-function readJson(relativePath) {
-  return JSON.parse(fs.readFileSync(path.join(projectRoot, relativePath), "utf8"));
-}
-
-function writeJson(relativePath, value) {
-  fs.writeFileSync(
-    path.join(projectRoot, relativePath),
-    `${JSON.stringify(value, null, 2)}\n`,
-  );
-}
+const rootDir = path.resolve(__dirname, "..");
+const packageJsonPath = path.join(rootDir, "package.json");
+const appJsonPath = path.join(rootDir, "app.json");
+const iosProjectPath = path.join(rootDir, "ios", "BagCount.xcodeproj", "project.pbxproj");
+const includeBuildNumber = process.argv.includes("--with-build-number");
 
 function getBuildNumber() {
   if (process.env.APP_BUILD_NUMBER) return process.env.APP_BUILD_NUMBER;
 
   const now = new Date();
   const pad = (n) => String(n).padStart(2, "0");
-  return `${now.getFullYear()}${pad(now.getMonth() + 1)}${pad(now.getDate())}${pad(now.getHours())}${pad(now.getMinutes())}`;
+  return `${now.getFullYear()}${pad(now.getMonth() + 1)}${pad(now.getDate())}${pad(now.getHours())}${pad(now.getMinutes())}${pad(now.getSeconds())}`;
 }
 
-// Android versionCode must be a positive 32-bit integer.
-// Minutes since 2024-01-01 gives ~4,000 years of headroom.
 function getVersionCode() {
   if (process.env.APP_BUILD_NUMBER) return parseInt(process.env.APP_BUILD_NUMBER, 10);
 
@@ -31,10 +33,26 @@ function getVersionCode() {
   return Math.floor((Date.now() - epoch) / 60_000);
 }
 
-function syncExpoConfig(version, buildNumber, versionCode) {
-  const appJson = readJson("app.json");
+function writeJson(filePath, value) {
+  fs.writeFileSync(filePath, `${JSON.stringify(value, null, 2)}\n`);
+}
 
-  appJson.expo.version = version;
+function replaceAllOrThrow(contents, pattern, replaceWith, label) {
+  if (!pattern.test(contents)) {
+    throw new Error(`Unable to find ${label} in ${path.basename(iosProjectPath)}`);
+  }
+  return contents.replace(pattern, replaceWith);
+}
+
+const packageJson = JSON.parse(fs.readFileSync(packageJsonPath, "utf8"));
+const version = packageJson.version;
+const buildNumber = getBuildNumber();
+const versionCode = getVersionCode();
+
+const appJson = JSON.parse(fs.readFileSync(appJsonPath, "utf8"));
+appJson.expo.version = version;
+
+if (includeBuildNumber) {
   appJson.expo.ios = {
     ...appJson.expo.ios,
     buildNumber,
@@ -43,49 +61,30 @@ function syncExpoConfig(version, buildNumber, versionCode) {
     ...appJson.expo.android,
     versionCode,
   };
-
-  writeJson("app.json", appJson);
 }
 
-function syncInfoPlist() {
-  const plistPath = path.join(projectRoot, "ios/BagCount/Info.plist");
-  let contents = fs.readFileSync(plistPath, "utf8");
+writeJson(appJsonPath, appJson);
 
-  contents = contents.replace(
-    /(<key>CFBundleShortVersionString<\/key>\s*<string>)([^<]+)(<\/string>)/,
-    "$1$(MARKETING_VERSION)$3",
-  );
-  contents = contents.replace(
-    /(<key>CFBundleVersion<\/key>\s*<string>)([^<]+)(<\/string>)/,
-    "$1$(CURRENT_PROJECT_VERSION)$3",
-  );
+let iosProject = fs.readFileSync(iosProjectPath, "utf8");
+iosProject = replaceAllOrThrow(
+  iosProject,
+  /MARKETING_VERSION = [^;]+;/g,
+  `MARKETING_VERSION = ${version};`,
+  "MARKETING_VERSION",
+);
 
-  fs.writeFileSync(plistPath, contents);
-}
-
-function syncXcodeProject(version, buildNumber) {
-  const pbxprojPath = path.join(projectRoot, "ios/BagCount.xcodeproj/project.pbxproj");
-  let contents = fs.readFileSync(pbxprojPath, "utf8");
-
-  contents = contents.replace(
+if (includeBuildNumber) {
+  iosProject = replaceAllOrThrow(
+    iosProject,
     /CURRENT_PROJECT_VERSION = [^;]+;/g,
     `CURRENT_PROJECT_VERSION = ${buildNumber};`,
+    "CURRENT_PROJECT_VERSION",
   );
-  contents = contents.replace(
-    /MARKETING_VERSION = [^;]+;/g,
-    `MARKETING_VERSION = ${version};`,
-  );
-
-  fs.writeFileSync(pbxprojPath, contents);
 }
 
-const packageJson = readJson("package.json");
-const version = packageJson.version;
-const buildNumber = getBuildNumber();
-const versionCode = getVersionCode();
+fs.writeFileSync(iosProjectPath, iosProject);
 
-syncExpoConfig(version, buildNumber, versionCode);
-syncInfoPlist();
-syncXcodeProject(version, buildNumber);
-
-console.log(`Synced version ${version} with build ${buildNumber}.`);
+console.log(`Synced version ${version} to package.json, app.json, and ios/BagCount.xcodeproj/project.pbxproj`);
+if (includeBuildNumber) {
+  console.log(`Stamped iOS CURRENT_PROJECT_VERSION ${buildNumber} and Android versionCode ${versionCode}`);
+}
