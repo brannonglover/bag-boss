@@ -1,12 +1,14 @@
 #!/usr/bin/env node
 /**
- * Syncs version metadata across package.json, app.json, and the iOS Xcode project.
- * During EAS iOS builds, we also stamp a fresh CURRENT_PROJECT_VERSION so App Store
- * submissions do not reuse an old build.
+ * Syncs version metadata across package.json, app.json, and (when present) the iOS
+ * Xcode project. During EAS iOS builds, we also stamp a fresh build number so App
+ * Store submissions do not reuse an old build.
+ *
+ * When /ios is gitignored, EAS generates native projects during prebuild (after this
+ * hook). In that case app.config.ts + withDynamicVersioning apply version/build values.
  *
  * Run manually with: node scripts/sync-version.js
  * Include a fresh iOS build number with: node scripts/sync-version.js --with-build-number
- * Or automatically via: npm run version:sync / npm version patch|minor|major / eas-build-pre-install
  */
 
 const fs = require("fs");
@@ -44,6 +46,33 @@ function replaceAllOrThrow(contents, pattern, replaceWith, label) {
   return contents.replace(pattern, replaceWith);
 }
 
+function syncXcodeProject(version, buildNumber) {
+  if (!fs.existsSync(iosProjectPath)) {
+    console.log("Skipping Xcode project sync (ios/ not present; EAS prebuild will apply versions from app.config.ts)");
+    return;
+  }
+
+  let iosProject = fs.readFileSync(iosProjectPath, "utf8");
+  iosProject = replaceAllOrThrow(
+    iosProject,
+    /MARKETING_VERSION = [^;]+;/g,
+    `MARKETING_VERSION = ${version};`,
+    "MARKETING_VERSION",
+  );
+
+  if (includeBuildNumber) {
+    iosProject = replaceAllOrThrow(
+      iosProject,
+      /CURRENT_PROJECT_VERSION = [^;]+;/g,
+      `CURRENT_PROJECT_VERSION = ${buildNumber};`,
+      "CURRENT_PROJECT_VERSION",
+    );
+  }
+
+  fs.writeFileSync(iosProjectPath, iosProject);
+  console.log(`Synced ios/BagCount.xcodeproj/project.pbxproj (MARKETING_VERSION = ${version}${includeBuildNumber ? `, CURRENT_PROJECT_VERSION = ${buildNumber}` : ""})`);
+}
+
 const packageJson = JSON.parse(fs.readFileSync(packageJsonPath, "utf8"));
 const version = packageJson.version;
 const buildNumber = getBuildNumber();
@@ -65,26 +94,9 @@ if (includeBuildNumber) {
 
 writeJson(appJsonPath, appJson);
 
-let iosProject = fs.readFileSync(iosProjectPath, "utf8");
-iosProject = replaceAllOrThrow(
-  iosProject,
-  /MARKETING_VERSION = [^;]+;/g,
-  `MARKETING_VERSION = ${version};`,
-  "MARKETING_VERSION",
-);
+syncXcodeProject(version, buildNumber);
 
+console.log(`Synced version ${version} to app.json`);
 if (includeBuildNumber) {
-  iosProject = replaceAllOrThrow(
-    iosProject,
-    /CURRENT_PROJECT_VERSION = [^;]+;/g,
-    `CURRENT_PROJECT_VERSION = ${buildNumber};`,
-    "CURRENT_PROJECT_VERSION",
-  );
-}
-
-fs.writeFileSync(iosProjectPath, iosProject);
-
-console.log(`Synced version ${version} to package.json, app.json, and ios/BagCount.xcodeproj/project.pbxproj`);
-if (includeBuildNumber) {
-  console.log(`Stamped iOS CURRENT_PROJECT_VERSION ${buildNumber} and Android versionCode ${versionCode}`);
+  console.log(`Stamped iOS buildNumber ${buildNumber} and Android versionCode ${versionCode} in app.json`);
 }
