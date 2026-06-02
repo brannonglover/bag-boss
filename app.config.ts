@@ -57,7 +57,18 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
   web: {
     favicon: "./assets/favicon.png",
   },
-  plugins: ["expo-router", "./plugins/withDynamicVersioning"],
+  plugins: [
+    "expo-router",
+    [
+      "expo-font",
+      {
+        fonts: [
+          "./node_modules/@expo-google-fonts/roboto-mono/400Regular/RobotoMono_400Regular.ttf",
+        ],
+      },
+    ],
+    "./plugins/withDynamicVersioning",
+  ],
   extra: {
     router: {},
     eas: {

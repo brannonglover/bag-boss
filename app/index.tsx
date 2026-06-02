@@ -7,7 +7,8 @@ import { ColorPicker } from '../src/components/ColorPicker';
 import { FireworksOverlay } from '../src/components/FireworksOverlay';
 import { HistoryPanel } from '../src/components/HistoryPanel';
 import { saveGame } from '../src/storage/gameHistory';
-import type { GameScores, ScoreAction, TeamSide } from '../src/types/game';
+import { monospaceDigits } from '../src/typography';
+import { clampScore, MAX_SCORE, type GameScores, type ScoreAction, type TeamSide } from '../src/types/game';
 
 const DEFAULT_SCORES: GameScores = {
   left: { score: 0, color: '#F97316' },
@@ -45,6 +46,7 @@ export default function CounterScreen() {
   const isLandscape = width > height;
   const isTablet = Math.min(width, height) >= 768;
   const isCompactPhone = !isTablet && !isLandscape && width < 390;
+  const isPortraitPhone = !isTablet && !isLandscape;
   const isScoreboardOnlyLandscape = isLandscape && !isTablet;
   const winner = getWinner(scores);
   const canSwipeToHistory = !isEmptyScoreModalVisible && !isFinishModalVisible && !isHistoryVisible;
@@ -103,8 +105,8 @@ export default function CounterScreen() {
 
   useEffect(() => {
     if (
-      (scores.left.score === 21 && previousScoresRef.current.left !== 21) ||
-      (scores.right.score === 21 && previousScoresRef.current.right !== 21)
+      (scores.left.score === MAX_SCORE && previousScoresRef.current.left !== MAX_SCORE) ||
+      (scores.right.score === MAX_SCORE && previousScoresRef.current.right !== MAX_SCORE)
     ) {
       setFireworksTrigger((currentTrigger) => currentTrigger + 1);
     }
@@ -116,6 +118,10 @@ export default function CounterScreen() {
   }, [scores.left.score, scores.right.score]);
 
   const incrementScore = (side: TeamSide) => {
+    if (scores[side].score >= MAX_SCORE) {
+      return;
+    }
+
     setScores((currentScores) => ({
       ...currentScores,
       [side]: {
@@ -135,7 +141,7 @@ export default function CounterScreen() {
       ...currentScores,
       [side]: {
         ...currentScores[side],
-        score: Math.max(0, currentScores[side].score - 1),
+        score: clampScore(currentScores[side].score - 1),
       },
     }));
     setActions((currentActions) => {
@@ -190,7 +196,10 @@ export default function CounterScreen() {
         createdAt: new Date().toISOString(),
         durationSeconds: timerSeconds,
         id: `${Date.now()}`,
-        scores,
+        scores: {
+          left: { ...scores.left, score: clampScore(scores.left.score) },
+          right: { ...scores.right, score: clampScore(scores.right.score) },
+        },
         winner,
       });
       setIsFinishModalVisible(false);
@@ -244,14 +253,17 @@ export default function CounterScreen() {
           score={scores.left.score}
           backgroundColor={scores.left.color}
           isLandscape={isLandscape}
+          isPortraitPhone={isPortraitPhone}
           onPress={() => incrementScore('left')}
           onUndo={() => undoSideScore('left')}
         />
+        <View style={styles.scoreboardDivider} />
         <ScorePanel
           label="Right"
           score={scores.right.score}
           backgroundColor={scores.right.color}
           isLandscape={isLandscape}
+          isPortraitPhone={isPortraitPhone}
           onPress={() => incrementScore('right')}
           onUndo={() => undoSideScore('right')}
         />
@@ -272,18 +284,13 @@ export default function CounterScreen() {
 
       {!isScoreboardOnlyLandscape ? (
         <View style={[styles.controls, isCompactPhone && styles.controlsCompact]}>
-          <View style={[styles.colorPickers, isCompactPhone && styles.colorPickersCompact]}>
-            <ColorPicker
-              label="Left bags"
-              onSelectColor={(color) => setTeamColor('left', color)}
-              selectedColor={scores.left.color}
-            />
-            <ColorPicker
-              label="Right bags"
-              onSelectColor={(color) => setTeamColor('right', color)}
-              selectedColor={scores.right.color}
-            />
-          </View>
+          <ColorPicker
+            controlsHorizontalPadding={isCompactPhone ? 32 : 36}
+            leftColor={scores.left.color}
+            onSelectLeftColor={(color) => setTeamColor('left', color)}
+            onSelectRightColor={(color) => setTeamColor('right', color)}
+            rightColor={scores.right.color}
+          />
 
           <View style={styles.actions}>
             <Pressable accessibilityRole="button" onPress={resetScores} style={styles.secondaryButton}>
@@ -486,6 +493,7 @@ function ModalTeamScore({
 type ScorePanelProps = {
   backgroundColor: string;
   isLandscape: boolean;
+  isPortraitPhone: boolean;
   label: string;
   onUndo: () => void;
   onPress: () => void;
@@ -496,20 +504,29 @@ function getScoreTypography(
   panelHeight: number,
   panelWidth: number,
   isLandscape: boolean,
+  isPortraitPhone: boolean,
 ) {
   if (panelHeight === 0 || panelWidth === 0) {
-    return { fontSize: isLandscape ? 180 : 96, lineHeight: isLandscape ? 198 : 106 };
+    if (isLandscape) {
+      return { fontSize: 180, lineHeight: 198 };
+    }
+
+    return {
+      fontSize: isPortraitPhone ? 104 : 96,
+      lineHeight: isPortraitPhone ? 112 : 106,
+    };
   }
 
-  const maxFontSize = isLandscape ? 230 : 128;
-  const heightScale = isLandscape ? 0.72 : 0.68;
-  const widthScale = isLandscape ? 0.82 : 0.88;
+  const maxFontSize = isLandscape ? 230 : isPortraitPhone ? 142 : 128;
+  const heightScale = isLandscape ? 0.72 : isPortraitPhone ? 0.73 : 0.68;
+  const widthScale = isLandscape ? 0.82 : isPortraitPhone ? 0.92 : 0.88;
   const fontSize = Math.min(
     maxFontSize,
     Math.floor(panelHeight * heightScale),
     Math.floor(panelWidth * widthScale),
   );
-  const clampedFontSize = Math.max(isLandscape ? 96 : 64, fontSize);
+  const minFontSize = isLandscape ? 96 : isPortraitPhone ? 72 : 64;
+  const clampedFontSize = Math.max(minFontSize, fontSize);
 
   return {
     fontSize: clampedFontSize,
@@ -520,6 +537,7 @@ function getScoreTypography(
 function ScorePanel({
   backgroundColor,
   isLandscape,
+  isPortraitPhone,
   label,
   onPress,
   onUndo,
@@ -527,8 +545,8 @@ function ScorePanel({
 }: ScorePanelProps) {
   const [panelLayout, setPanelLayout] = useState({ height: 0, width: 0 });
   const scoreTypography = useMemo(
-    () => getScoreTypography(panelLayout.height, panelLayout.width, isLandscape),
-    [isLandscape, panelLayout.height, panelLayout.width],
+    () => getScoreTypography(panelLayout.height, panelLayout.width, isLandscape, isPortraitPhone),
+    [isLandscape, isPortraitPhone, panelLayout.height, panelLayout.width],
   );
   const textColor = backgroundColor === '#F8FAFC' || backgroundColor === '#FACC15' ? '#111827' : '#FFFFFF';
   const lastLongPressAtRef = useRef(0);
@@ -589,12 +607,6 @@ const styles = StyleSheet.create({
   actions: {
     flexDirection: 'row',
     gap: 10,
-  },
-  colorPickers: {
-    gap: 18,
-  },
-  colorPickersCompact: {
-    gap: 12,
   },
   controls: {
     backgroundColor: '#090D16',
@@ -691,8 +703,12 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     minHeight: 0,
   },
+  scoreboardDivider: {
+    backgroundColor: '#020617',
+    width: 2,
+  },
   score: {
-    fontWeight: '900',
+    ...monospaceDigits,
     includeFontPadding: false,
     textAlign: 'center',
     width: '100%',
@@ -778,14 +794,14 @@ const styles = StyleSheet.create({
     fontWeight: '900',
   },
   modalScore: {
+    ...monospaceDigits,
     color: '#FFFFFF',
     fontSize: 48,
-    fontWeight: '900',
   },
   modalScoreDivider: {
+    ...monospaceDigits,
     color: '#E50914',
     fontSize: 34,
-    fontWeight: '900',
   },
   modalScoreRow: {
     alignItems: 'center',
@@ -878,9 +894,8 @@ const styles = StyleSheet.create({
     zIndex: 2,
   },
   timerText: {
+    ...monospaceDigits,
     color: '#FFFFFF',
     fontSize: 14,
-    fontVariant: ['tabular-nums'],
-    fontWeight: '900',
   },
 });

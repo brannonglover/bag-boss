@@ -1,4 +1,4 @@
-import { Pressable, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
+import { Pressable, StyleSheet, useWindowDimensions, View } from 'react-native';
 
 const BAG_COLORS = [
   '#F97316',
@@ -11,69 +11,141 @@ const BAG_COLORS = [
   '#F8FAFC',
 ] as const;
 
+const DIVIDER_WIDTH = 2;
+const CENTER_GUTTER = 12;
+const PREFERRED_COLS_PER_ROW = 4;
+const TARGET_SWATCH_MIN = 26;
+const TARGET_SWATCH_MAX = 32;
+const FALLBACK_SWATCH_MIN = 24;
+
+type TeamSide = 'left' | 'right';
+
 type ColorPickerProps = {
-  label: string;
-  selectedColor: string;
-  onSelectColor: (color: string) => void;
+  controlsHorizontalPadding?: number;
+  leftColor: string;
+  rightColor: string;
+  onSelectLeftColor: (color: string) => void;
+  onSelectRightColor: (color: string) => void;
 };
 
-const CONTROLS_HORIZONTAL_PADDING = 36;
+function getSwatchLayout(screenWidth: number, controlsHorizontalPadding: number) {
+  const gap = screenWidth < 390 ? 8 : 10;
+  const halfWidth = (screenWidth - controlsHorizontalPadding - DIVIDER_WIDTH - CENTER_GUTTER) / 2;
 
-function getSwatchLayout(screenWidth: number) {
-  const gap = screenWidth < 390 ? 7 : 10;
-  const availableWidth = screenWidth - CONTROLS_HORIZONTAL_PADDING;
-  const swatchSize = Math.min(
-    30,
-    Math.floor((availableWidth - (BAG_COLORS.length - 1) * gap) / BAG_COLORS.length),
+  let colsPerRow = PREFERRED_COLS_PER_ROW;
+  let swatchSize = Math.floor((halfWidth - (colsPerRow - 1) * gap) / colsPerRow);
+
+  while (swatchSize < TARGET_SWATCH_MIN && colsPerRow > 2) {
+    colsPerRow -= 1;
+    swatchSize = Math.floor((halfWidth - (colsPerRow - 1) * gap) / colsPerRow);
+  }
+
+  swatchSize = Math.min(TARGET_SWATCH_MAX, Math.max(FALLBACK_SWATCH_MIN, swatchSize));
+
+  const rowWidth = colsPerRow * swatchSize + (colsPerRow - 1) * gap;
+  if (rowWidth > halfWidth) {
+    swatchSize = Math.floor((halfWidth - (colsPerRow - 1) * gap) / colsPerRow);
+    swatchSize = Math.max(FALLBACK_SWATCH_MIN, Math.min(TARGET_SWATCH_MAX, swatchSize));
+  }
+
+  return { gap, halfWidth, swatchSize };
+}
+
+function ColorSwatches({
+  align,
+  gap,
+  halfWidth,
+  onSelectColor,
+  selectedColor,
+  side,
+  swatchSize,
+}: {
+  align: 'left' | 'right';
+  gap: number;
+  halfWidth: number;
+  onSelectColor: (color: string) => void;
+  selectedColor: string;
+  side: TeamSide;
+  swatchSize: number;
+}) {
+  const sideLabel = side === 'left' ? 'Left bags' : 'Right bags';
+
+  return (
+    <View
+      style={[
+        styles.swatches,
+        align === 'right' ? styles.swatchesRight : styles.swatchesLeft,
+        { gap, width: halfWidth },
+      ]}
+    >
+      {BAG_COLORS.map((color) => (
+        <Pressable
+          accessibilityLabel={`${sideLabel} ${color} bag color`}
+          accessibilityRole="button"
+          key={color}
+          onPress={() => onSelectColor(color)}
+          style={[
+            styles.swatch,
+            {
+              backgroundColor: color,
+              height: swatchSize,
+              width: swatchSize,
+            },
+            selectedColor === color && styles.selectedSwatch,
+            color === '#F8FAFC' && styles.lightSwatch,
+          ]}
+        />
+      ))}
+    </View>
   );
-
-  return { gap, swatchSize: Math.max(24, swatchSize) };
 }
 
 export function ColorPicker({
-  label,
-  selectedColor,
-  onSelectColor,
+  controlsHorizontalPadding = 36,
+  leftColor,
+  onSelectLeftColor,
+  onSelectRightColor,
+  rightColor,
 }: ColorPickerProps) {
   const { width } = useWindowDimensions();
-  const { gap, swatchSize } = getSwatchLayout(width);
+  const { gap, halfWidth, swatchSize } = getSwatchLayout(width, controlsHorizontalPadding);
 
   return (
-    <View style={styles.container}>
-      <Text style={styles.label}>{label}</Text>
-      <View style={[styles.swatches, { gap }]}>
-        {BAG_COLORS.map((color) => (
-          <Pressable
-            accessibilityLabel={`${label} ${color} bag color`}
-            accessibilityRole="button"
-            key={color}
-            onPress={() => onSelectColor(color)}
-            style={[
-              styles.swatch,
-              {
-                backgroundColor: color,
-                height: swatchSize,
-                width: swatchSize,
-              },
-              selectedColor === color && styles.selectedSwatch,
-              color === '#F8FAFC' && styles.lightSwatch,
-            ]}
-          />
-        ))}
+    <View style={styles.splitRow}>
+      <View style={[styles.side, { width: halfWidth }]}>
+        <ColorSwatches
+          align="left"
+          gap={gap}
+          halfWidth={halfWidth}
+          onSelectColor={onSelectLeftColor}
+          selectedColor={leftColor}
+          side="left"
+          swatchSize={swatchSize}
+        />
+      </View>
+      <View style={styles.divider} />
+      <View style={[styles.side, styles.sideRight, { width: halfWidth }]}>
+        <ColorSwatches
+          align="right"
+          gap={gap}
+          halfWidth={halfWidth}
+          onSelectColor={onSelectRightColor}
+          selectedColor={rightColor}
+          side="right"
+          swatchSize={swatchSize}
+        />
       </View>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
-    gap: 8,
-  },
-  label: {
-    color: '#F6C453',
-    fontSize: 13,
-    fontWeight: '700',
-    textTransform: 'uppercase',
+  divider: {
+    alignSelf: 'stretch',
+    backgroundColor: 'rgba(255, 255, 255, 0.5)',
+    flexShrink: 0,
+    marginHorizontal: CENTER_GUTTER / 2,
+    width: DIVIDER_WIDTH,
   },
   lightSwatch: {
     borderColor: '#CBD5E1',
@@ -81,15 +153,34 @@ const styles = StyleSheet.create({
   selectedSwatch: {
     borderColor: '#FFFFFF',
     borderWidth: 3,
-    transform: [{ scale: 1.1 }],
+  },
+  side: {
+    flexShrink: 0,
+    minWidth: 0,
+  },
+  sideRight: {
+    alignItems: 'flex-end',
+  },
+  splitRow: {
+    alignItems: 'stretch',
+    flexDirection: 'row',
+    justifyContent: 'center',
+    width: '100%',
   },
   swatch: {
     borderColor: 'rgba(255, 255, 255, 0.25)',
     borderRadius: 999,
     borderWidth: 1,
+    flexShrink: 0,
   },
   swatches: {
     flexDirection: 'row',
-    flexWrap: 'nowrap',
+    flexWrap: 'wrap',
+  },
+  swatchesLeft: {
+    justifyContent: 'flex-start',
+  },
+  swatchesRight: {
+    justifyContent: 'flex-end',
   },
 });

@@ -1,8 +1,19 @@
+import { RobotoMono_400Regular, useFonts } from '@expo-google-fonts/roboto-mono';
 import { Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
-import { Image, StyleSheet } from 'react-native';
+import { Platform, Image, StyleSheet } from 'react-native';
 
 export default function RootLayout() {
+  const [fontsLoaded] = useFonts({
+    RobotoMono_400Regular,
+  });
+
+  const fontsReady = Platform.OS === 'ios' || fontsLoaded;
+
+  if (!fontsReady) {
+    return null;
+  }
+
   return (
     <>
       <StatusBar style="light" />
