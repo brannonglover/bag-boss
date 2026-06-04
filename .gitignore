@@ -33,9 +33,14 @@ yarn-error.*
 # local env files
 .env*.local
 
+# Google Play service account key (never commit)
+google-play-service-account.json
+
 # typescript
 *.tsbuildinfo
 
 # generated native folders
 /ios
 /android
+
+bag-count-d2fd335debf3.json

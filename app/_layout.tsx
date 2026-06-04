@@ -1,14 +1,17 @@
-import { RobotoMono_400Regular, useFonts } from '@expo-google-fonts/roboto-mono';
+import { MPLUSRounded1c_700Bold, useFonts } from '@expo-google-fonts/m-plus-rounded-1c';
+import { isLoaded } from 'expo-font';
 import { Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { Platform, Image, StyleSheet } from 'react-native';
+import { bundledRoundedDigitFontFamily } from '../src/typography';
 
 export default function RootLayout() {
   const [fontsLoaded] = useFonts({
-    RobotoMono_400Regular,
+    [bundledRoundedDigitFontFamily]: MPLUSRounded1c_700Bold,
   });
 
-  const fontsReady = Platform.OS === 'ios' || fontsLoaded;
+  const fontsReady =
+    Platform.OS === 'ios' || isLoaded(bundledRoundedDigitFontFamily) || fontsLoaded;
 
   if (!fontsReady) {
     return null;

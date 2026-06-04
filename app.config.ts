@@ -45,6 +45,7 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
     },
   },
   android: {
+    icon: "./assets/android-icon.png",
     adaptiveIcon: {
       foregroundImage: "./assets/adaptive-icon.png",
       backgroundColor: "#ffffff",
@@ -63,8 +64,22 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
       "expo-font",
       {
         fonts: [
-          "./node_modules/@expo-google-fonts/roboto-mono/400Regular/RobotoMono_400Regular.ttf",
+          "./node_modules/@expo-google-fonts/m-plus-rounded-1c/700Bold/MPLUSRounded1c_700Bold.ttf",
         ],
+        android: {
+          fonts: [
+            {
+              fontFamily: "MPLUSRounded1c_700Bold",
+              fontDefinitions: [
+                {
+                  path: "./node_modules/@expo-google-fonts/m-plus-rounded-1c/700Bold/MPLUSRounded1c_700Bold.ttf",
+                  weight: 700,
+                  style: "normal",
+                },
+              ],
+            },
+          ],
+        },
       },
     ],
     "./plugins/withDynamicVersioning",

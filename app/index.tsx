@@ -7,7 +7,7 @@ import { ColorPicker } from '../src/components/ColorPicker';
 import { FireworksOverlay } from '../src/components/FireworksOverlay';
 import { HistoryPanel } from '../src/components/HistoryPanel';
 import { saveGame } from '../src/storage/gameHistory';
-import { monospaceDigits } from '../src/typography';
+import { roundedDigitText } from '../src/typography';
 import { clampScore, MAX_SCORE, type GameScores, type ScoreAction, type TeamSide } from '../src/types/game';
 
 const DEFAULT_SCORES: GameScores = {
@@ -47,7 +47,9 @@ export default function CounterScreen() {
   const isTablet = Math.min(width, height) >= 768;
   const isCompactPhone = !isTablet && !isLandscape && width < 390;
   const isPortraitPhone = !isTablet && !isLandscape;
-  const isScoreboardOnlyLandscape = isLandscape && !isTablet;
+  const isPortraitTablet = isTablet && !isLandscape;
+  const isLandscapeTablet = isTablet && isLandscape;
+  const isScoreboardOnlyLandscape = isLandscape;
   const winner = getWinner(scores);
   const canSwipeToHistory = !isEmptyScoreModalVisible && !isFinishModalVisible && !isHistoryVisible;
 
@@ -253,7 +255,9 @@ export default function CounterScreen() {
           score={scores.left.score}
           backgroundColor={scores.left.color}
           isLandscape={isLandscape}
+          isLandscapeTablet={isLandscapeTablet}
           isPortraitPhone={isPortraitPhone}
+          isPortraitTablet={isPortraitTablet}
           onPress={() => incrementScore('left')}
           onUndo={() => undoSideScore('left')}
         />
@@ -263,7 +267,9 @@ export default function CounterScreen() {
           score={scores.right.score}
           backgroundColor={scores.right.color}
           isLandscape={isLandscape}
+          isLandscapeTablet={isLandscapeTablet}
           isPortraitPhone={isPortraitPhone}
+          isPortraitTablet={isPortraitTablet}
           onPress={() => incrementScore('right')}
           onUndo={() => undoSideScore('right')}
         />
@@ -283,9 +289,16 @@ export default function CounterScreen() {
       ) : null}
 
       {!isScoreboardOnlyLandscape ? (
-        <View style={[styles.controls, isCompactPhone && styles.controlsCompact]}>
+        <View
+          style={[
+            styles.controls,
+            isCompactPhone && styles.controlsCompact,
+            isPortraitTablet && styles.controlsPortraitTablet,
+          ]}
+        >
           <ColorPicker
             controlsHorizontalPadding={isCompactPhone ? 32 : 36}
+            isPortraitTablet={isPortraitTablet}
             leftColor={scores.left.color}
             onSelectLeftColor={(color) => setTeamColor('left', color)}
             onSelectRightColor={(color) => setTeamColor('right', color)}
@@ -493,7 +506,9 @@ function ModalTeamScore({
 type ScorePanelProps = {
   backgroundColor: string;
   isLandscape: boolean;
+  isLandscapeTablet: boolean;
   isPortraitPhone: boolean;
+  isPortraitTablet: boolean;
   label: string;
   onUndo: () => void;
   onPress: () => void;
@@ -504,11 +519,21 @@ function getScoreTypography(
   panelHeight: number,
   panelWidth: number,
   isLandscape: boolean,
+  isLandscapeTablet: boolean,
   isPortraitPhone: boolean,
+  isPortraitTablet: boolean,
 ) {
   if (panelHeight === 0 || panelWidth === 0) {
+    if (isLandscapeTablet) {
+      return { fontSize: 280, lineHeight: 302 };
+    }
+
     if (isLandscape) {
       return { fontSize: 180, lineHeight: 198 };
+    }
+
+    if (isPortraitTablet) {
+      return { fontSize: 172, lineHeight: 186 };
     }
 
     return {
@@ -517,15 +542,47 @@ function getScoreTypography(
     };
   }
 
-  const maxFontSize = isLandscape ? 230 : isPortraitPhone ? 142 : 128;
-  const heightScale = isLandscape ? 0.72 : isPortraitPhone ? 0.73 : 0.68;
-  const widthScale = isLandscape ? 0.82 : isPortraitPhone ? 0.92 : 0.88;
+  const maxFontSize = isLandscapeTablet
+    ? 360
+    : isLandscape
+      ? 230
+      : isPortraitTablet
+        ? 260
+        : isPortraitPhone
+          ? 142
+          : 128;
+  const heightScale = isLandscapeTablet
+    ? 0.88
+    : isLandscape
+      ? 0.72
+      : isPortraitTablet
+        ? 0.86
+        : isPortraitPhone
+          ? 0.73
+          : 0.68;
+  const widthScale = isLandscapeTablet
+    ? 0.96
+    : isLandscape
+      ? 0.82
+      : isPortraitTablet
+        ? 0.98
+        : isPortraitPhone
+          ? 0.92
+          : 0.88;
   const fontSize = Math.min(
     maxFontSize,
     Math.floor(panelHeight * heightScale),
     Math.floor(panelWidth * widthScale),
   );
-  const minFontSize = isLandscape ? 96 : isPortraitPhone ? 72 : 64;
+  const minFontSize = isLandscapeTablet
+    ? 140
+    : isLandscape
+      ? 96
+      : isPortraitTablet
+        ? 108
+        : isPortraitPhone
+          ? 72
+          : 64;
   const clampedFontSize = Math.max(minFontSize, fontSize);
 
   return {
@@ -537,7 +594,9 @@ function getScoreTypography(
 function ScorePanel({
   backgroundColor,
   isLandscape,
+  isLandscapeTablet,
   isPortraitPhone,
+  isPortraitTablet,
   label,
   onPress,
   onUndo,
@@ -545,8 +604,16 @@ function ScorePanel({
 }: ScorePanelProps) {
   const [panelLayout, setPanelLayout] = useState({ height: 0, width: 0 });
   const scoreTypography = useMemo(
-    () => getScoreTypography(panelLayout.height, panelLayout.width, isLandscape, isPortraitPhone),
-    [isLandscape, isPortraitPhone, panelLayout.height, panelLayout.width],
+    () =>
+      getScoreTypography(
+        panelLayout.height,
+        panelLayout.width,
+        isLandscape,
+        isLandscapeTablet,
+        isPortraitPhone,
+        isPortraitTablet,
+      ),
+    [isLandscape, isLandscapeTablet, isPortraitPhone, isPortraitTablet, panelLayout.height, panelLayout.width],
   );
   const textColor = backgroundColor === '#F8FAFC' || backgroundColor === '#FACC15' ? '#111827' : '#FFFFFF';
   const lastLongPressAtRef = useRef(0);
@@ -619,6 +686,11 @@ const styles = StyleSheet.create({
     gap: 16,
     paddingHorizontal: 16,
     paddingVertical: 14,
+  },
+  controlsPortraitTablet: {
+    gap: 28,
+    paddingBottom: 28,
+    paddingTop: 28,
   },
   disabledButton: {
     opacity: 0.45,
@@ -708,7 +780,7 @@ const styles = StyleSheet.create({
     width: 2,
   },
   score: {
-    ...monospaceDigits,
+    ...roundedDigitText,
     includeFontPadding: false,
     textAlign: 'center',
     width: '100%',
@@ -794,12 +866,12 @@ const styles = StyleSheet.create({
     fontWeight: '900',
   },
   modalScore: {
-    ...monospaceDigits,
+    ...roundedDigitText,
     color: '#FFFFFF',
     fontSize: 48,
   },
   modalScoreDivider: {
-    ...monospaceDigits,
+    ...roundedDigitText,
     color: '#E50914',
     fontSize: 34,
   },
@@ -894,7 +966,7 @@ const styles = StyleSheet.create({
     zIndex: 2,
   },
   timerText: {
-    ...monospaceDigits,
+    ...roundedDigitText,
     color: '#FFFFFF',
     fontSize: 14,
   },

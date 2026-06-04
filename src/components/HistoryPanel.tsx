@@ -3,7 +3,7 @@ import { Alert, FlatList, PanResponder, Pressable, StyleSheet, Text, View } from
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { clearGameHistory, getGameHistory } from '../storage/gameHistory';
-import { monospaceDigits } from '../typography';
+import { roundedDigitText } from '../typography';
 import type { GameRecord, TeamSide } from '../types/game';
 
 type HistoryPanelProps = {
@@ -175,7 +175,7 @@ const styles = StyleSheet.create({
     fontWeight: '700',
   },
   cardDuration: {
-    ...monospaceDigits,
+    ...roundedDigitText,
     color: '#E5E7EB',
     fontSize: 14,
   },
@@ -264,7 +264,7 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   scoreDivider: {
-    ...monospaceDigits,
+    ...roundedDigitText,
     color: '#E50914',
     fontSize: 36,
   },
@@ -286,7 +286,7 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   teamScore: {
-    ...monospaceDigits,
+    ...roundedDigitText,
     color: '#FFFFFF',
     fontSize: 44,
   },
