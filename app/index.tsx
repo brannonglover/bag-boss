@@ -1,7 +1,7 @@
 import { Stack } from 'expo-router';
 import { Alert, Animated, Image, PanResponder, Pressable, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { startTransition, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
 import { ColorPicker } from '../src/components/ColorPicker';
 import { FireworksOverlay } from '../src/components/FireworksOverlay';
@@ -110,7 +110,9 @@ export default function CounterScreen() {
       (scores.left.score === MAX_SCORE && previousScoresRef.current.left !== MAX_SCORE) ||
       (scores.right.score === MAX_SCORE && previousScoresRef.current.right !== MAX_SCORE)
     ) {
-      setFireworksTrigger((currentTrigger) => currentTrigger + 1);
+      startTransition(() => {
+        setFireworksTrigger((currentTrigger) => currentTrigger + 1);
+      });
     }
 
     previousScoresRef.current = {

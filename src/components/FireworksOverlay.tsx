@@ -1,5 +1,20 @@
-import { Animated, Easing, StyleSheet, useWindowDimensions, View } from 'react-native';
+import {
+  Animated,
+  Easing,
+  InteractionManager,
+  StyleSheet,
+  useWindowDimensions,
+  View,
+} from 'react-native';
 import { useEffect, useMemo, useRef, useState } from 'react';
+
+function runAfterScorePaint(task: () => void) {
+  return InteractionManager.runAfterInteractions(() => {
+    requestAnimationFrame(() => {
+      requestAnimationFrame(task);
+    });
+  });
+}
 
 const FIREWORK_COLORS = ['#F8FAFC', '#FACC15', '#FB7185', '#60A5FA', '#A78BFA', '#34D399'];
 const PARTICLES_PER_BURST = 20;
@@ -66,16 +81,35 @@ export function FireworksOverlay({ trigger }: FireworksOverlayProps) {
       return;
     }
 
-    setActiveTrigger(trigger);
-    setIsVisible(true);
-    progress.setValue(0);
+    let cancelled = false;
+    let animation: Animated.CompositeAnimation | null = null;
+    const interactionHandle = runAfterScorePaint(() => {
+      if (cancelled) {
+        return;
+      }
 
-    Animated.timing(progress, {
-      duration: 3000,
-      easing: Easing.out(Easing.cubic),
-      toValue: 1,
-      useNativeDriver: true,
-    }).start(() => setIsVisible(false));
+      setActiveTrigger(trigger);
+      setIsVisible(true);
+      progress.setValue(0);
+
+      animation = Animated.timing(progress, {
+        duration: 3000,
+        easing: Easing.out(Easing.cubic),
+        toValue: 1,
+        useNativeDriver: true,
+      });
+      animation.start(({ finished }) => {
+        if (finished) {
+          setIsVisible(false);
+        }
+      });
+    });
+
+    return () => {
+      cancelled = true;
+      interactionHandle.cancel();
+      animation?.stop();
+    };
   }, [progress, trigger]);
 
   if (!isVisible) {
