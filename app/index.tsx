@@ -1,9 +1,10 @@
 import { Stack } from 'expo-router';
 import { Alert, Animated, Image, PanResponder, Pressable, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { startTransition, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
 import { ColorPicker } from '../src/components/ColorPicker';
+import { FeedbackBtn } from '../src/components/FeedbackBtn';
 import { FireworksOverlay } from '../src/components/FireworksOverlay';
 import { HistoryPanel } from '../src/components/HistoryPanel';
 import { saveGame } from '../src/storage/gameHistory';
@@ -32,6 +33,7 @@ function formatDuration(totalSeconds: number) {
 
 export default function CounterScreen() {
   const { height, width } = useWindowDimensions();
+  const insets = useSafeAreaInsets();
   const [scores, setScores] = useState<GameScores>(DEFAULT_SCORES);
   const [actions, setActions] = useState<ScoreAction[]>([]);
   const [isEmptyScoreModalVisible, setIsEmptyScoreModalVisible] = useState(false);
@@ -228,8 +230,20 @@ export default function CounterScreen() {
               style={[styles.homeHeaderLogo, isCompactPhone && styles.homeHeaderLogoCompact]}
             />
           </View>
+          <View style={[styles.homeHeaderFeedback, { right: Math.max(insets.right, 12) }]}>
+            <FeedbackBtn />
+          </View>
         </View>
-      ) : null}
+      ) : (
+        <View
+          style={[
+            styles.landscapeFeedbackCorner,
+            { right: Math.max(insets.right, 14), top: insets.top + 8 },
+          ]}
+        >
+          <FeedbackBtn />
+        </View>
+      )}
       {!isScoreboardOnlyLandscape ? (
         <View style={[styles.topBar, isCompactPhone && styles.topBarCompact]}>
           <Text style={[styles.instructions, isCompactPhone && styles.instructionsCompact]}>
@@ -245,9 +259,11 @@ export default function CounterScreen() {
             onToggle={() => setIsTimerRunning((currentValue) => !currentValue)}
             seconds={timerSeconds}
           />
-          <Pressable accessibilityRole="button" onPress={openHistory} style={styles.historyButton}>
-            <Text style={styles.historyButtonText}>History</Text>
-          </Pressable>
+          <View style={styles.topBarActions}>
+            <Pressable accessibilityRole="button" onPress={openHistory} style={styles.historyButton}>
+              <Text style={styles.historyButtonText}>History</Text>
+            </Pressable>
+          </View>
         </View>
       ) : null}
 
@@ -720,9 +736,20 @@ const styles = StyleSheet.create({
     backgroundColor: '#090D16',
     justifyContent: 'center',
     paddingVertical: 8,
+    position: 'relative',
   },
   homeHeaderCompact: {
     paddingVertical: 4,
+  },
+  homeHeaderFeedback: {
+    bottom: 0,
+    justifyContent: 'center',
+    position: 'absolute',
+    top: 0,
+  },
+  landscapeFeedbackCorner: {
+    position: 'absolute',
+    zIndex: 3,
   },
   homeHeaderLogoFrame: {
     height: 56,
@@ -934,6 +961,11 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     gap: 16,
     padding: 16,
+  },
+  topBarActions: {
+    alignItems: 'center',
+    flexDirection: 'row',
+    gap: 4,
   },
   topBarCompact: {
     gap: 10,

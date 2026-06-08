@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Alert, FlatList, PanResponder, Pressable, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
+import { FeedbackBtn } from './FeedbackBtn';
 import { clearGameHistory, getGameHistory } from '../storage/gameHistory';
 import { roundedDigitText } from '../typography';
 import type { GameRecord, TeamSide } from '../types/game';
@@ -83,7 +84,7 @@ export function HistoryPanel({ onClose, visible }: HistoryPanelProps) {
           <Text style={styles.backButtonText}>‹ Back</Text>
         </Pressable>
         <Text style={styles.navTitle}>Game History</Text>
-        <View style={styles.headerSpacer} />
+        <FeedbackBtn />
       </View>
 
       <View style={styles.header}>
@@ -232,9 +233,6 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     padding: 18,
-  },
-  headerSpacer: {
-    width: 56,
   },
   headerText: {
     color: '#F6C453',

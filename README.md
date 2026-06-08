@@ -9,12 +9,13 @@ Tap to score. Long-press to undo. Built-in timer, custom bag colors, and local g
 - **Fast scoring** — Tap either side to add a point; long-press to undo
 - **Game timer** — Start, pause, and reset with a tap or long-press
 - **Team colors** — Pick colors for left and right bags so teams are easy to spot
+- **In-app feedback** — Send thoughts, ideas, or bug reports from the message icon on the counter screen
 - **Game history** — Save finished games with scores, winner, and elapsed time
 - **Landscape mode** — Rotate for a full-screen scoreboard
 
 ## Support
 
-For questions, feedback, or bug reports, open an issue:
+For questions, feedback, or bug reports, use the in-app feedback button or open an issue:
 
 **https://github.com/brannonglover/bag-count/issues**
 
